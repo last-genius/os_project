@@ -1,27 +1,25 @@
 #![no_std]
 
+mod vga_buffer;
+
 use core::panic::PanicInfo;
 
-static HELLO: &[u8] = b"hello world ";
-
+/// The starting place of the kernel
+///
+/// The bootloader jumps over here once it properly sets up the long mode
+/// and checks whether we were loaded by a multiboot-compliant bootloader
+/// (all can be seen in `boot.asm` and `long_mode_init.asm`)
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
-    let vga_buffer = 0xb8000 as *mut u8;
-
     for i in 0..120 {
-        for (j, &byte) in HELLO.iter().enumerate() {
-            unsafe {
-                *vga_buffer.offset(2 * i * HELLO.len() as isize + j as isize * 2) = byte;
-                *vga_buffer.offset(2 * i * HELLO.len() as isize + j as isize * 2 + 1) = 0xb;
-            }
-        }
+        println!("Hello world {}", i);
     }
 
     loop {}
 }
 
-/// This function is called on panic.
 #[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
+fn panic(info: &PanicInfo) -> ! {
+    println!("{}", info);
     loop {}
 }

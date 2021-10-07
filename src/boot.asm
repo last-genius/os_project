@@ -20,6 +20,7 @@ start:
 
     hlt
 
+; Check the magic number in eax to check whether we were loaded by multiboot
 check_multiboot:
     cmp eax, 0x36d76289
     jne .no_multiboot
@@ -28,10 +29,9 @@ check_multiboot:
     mov al, "0"
     jmp error
 
+; Check if CPUID is supported by attempting to flip the ID bit (bit 21)
+; in the FLAGS register. If we can flip it, CPUID is available.
 check_cpuid:
-    ; Check if CPUID is supported by attempting to flip the ID bit (bit 21)
-    ; in the FLAGS register. If we can flip it, CPUID is available.
-
     ; Copy FLAGS in to EAX via stack
     pushfd
     pop eax
@@ -82,7 +82,7 @@ check_long_mode:
     jmp error
 
 ; Prints `ERR: ` and the given error code to screen and hangs.
-; parameter: error code (in ascii) in al
+; parameter: error code (in ascii) in al register
 error:
     mov dword [0xb8000], 0x4f524f45
     mov dword [0xb8004], 0x4f3a4f52
