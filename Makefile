@@ -4,10 +4,10 @@ iso := build/os-$(arch).iso
 target ?= $(arch)-rust_os
 rust_os := target/$(target)/debug/librust_os.a
 
-linker_script := src/linker.ld
-grub_cfg := src/grub.cfg
-assembly_source_files := $(wildcard src/*.asm)
-assembly_object_files := $(patsubst src/%.asm, \
+linker_script := rust_os/src/linker.ld
+grub_cfg := rust_os/src/grub.cfg
+assembly_source_files := $(wildcard rust_os/src/*.asm)
+assembly_object_files := $(patsubst rust_os/src/%.asm, \
 	build/%.o, $(assembly_source_files))
 
 .PHONY: all clean run iso kernel
@@ -37,6 +37,6 @@ kernel:
 	cargo build
 
 # compile assembly files
-build/%.o: src/%.asm
+build/%.o: rust_os/src/%.asm
 	mkdir -p $(shell dirname $@)
 	nasm -felf64 $< -o $@

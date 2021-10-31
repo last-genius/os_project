@@ -24,18 +24,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "multiboot2"
-version = "0.12.2"
-dependencies = [
- "bitflags",
-]
-
-[[package]]
 name = "rust_os"
 version = "0.1.0"
 dependencies = [
+ "bitflags",
  "lazy_static",
- "multiboot2",
  "spin",
  "volatile 0.2.7",
  "x86_64",

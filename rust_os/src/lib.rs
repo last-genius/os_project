@@ -1,5 +1,6 @@
 #![no_std]
 
+mod memory;
 mod vga_buffer;
 
 use core::panic::PanicInfo;
@@ -10,12 +11,11 @@ use core::panic::PanicInfo;
 /// and checks whether we were loaded by a multiboot-compliant bootloader
 /// (all can be seen in `boot.asm` and `long_mode_init.asm`)
 #[no_mangle]
-pub extern "C" fn _start() -> ! {
-    for i in 0..120 {
-        println!("Hello world {}", i);
+pub extern "C" fn _start(multiboot_info_ptr: usize) -> ! {
+    memory::read_multiboot_data(multiboot_info_ptr);
+    loop {
+        x86_64::instructions::hlt();
     }
-
-    loop {}
 }
 
 #[panic_handler]
