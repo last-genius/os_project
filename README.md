@@ -24,3 +24,11 @@ make run
 
 * Operating system (written in Rust) is booted after a short assembly script (`boot.asm`) checks the bootloader and switches to the long mode.
 * Operating system can handle panics, can write to the hardcoded VGA buffer.
+* The bootloader set ups recursive page mappings, and the OS can use a simple area frame allocator to map new pages.
+
+## TODO:
+
+* Interrupt handling
+* A better allocator
+* Heap allocator
+* Serial module for easier testing and debugging

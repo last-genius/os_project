@@ -12,7 +12,12 @@ use core::panic::PanicInfo;
 /// (all can be seen in `boot.asm` and `long_mode_init.asm`)
 #[no_mangle]
 pub extern "C" fn _start(multiboot_info_ptr: usize) -> ! {
-    memory::read_multiboot_data(multiboot_info_ptr);
+    let boot_info = unsafe { multiboot2::load(multiboot_info_ptr as usize).unwrap() };
+    let mut frame_allocator = memory::read_multiboot_data(multiboot_info_ptr, &boot_info);
+    let mut mapper = unsafe { memory::init_tables() };
+    memory::test_frame_allocation(&mut mapper, &mut frame_allocator);
+    memory::test_address_translation(&mapper);
+
     loop {
         x86_64::instructions::hlt();
     }

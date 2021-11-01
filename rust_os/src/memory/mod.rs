@@ -1,19 +1,22 @@
 use crate::println;
-use multiboot2::load;
+use multiboot2::BootInformation;
 use x86_64::{
-    structures::paging::{Page, PageTable, RecursivePageTable, Translate},
-    VirtAddr,
+    structures::paging::{
+        FrameAllocator, Mapper, Page, PageTable, PhysFrame, RecursivePageTable, Size4KiB, Translate,
+    },
+    PhysAddr, VirtAddr,
 };
 
-use self::frame_allocator::AreaFrameAllocator;
+use self::frame_allocator::{AreaFrameAllocator, MemoryArea};
 
 mod frame_allocator;
 
 pub const P4: u64 = 0xffffffff_fffff000;
 
-pub fn read_multiboot_data(multiboot_info_ptr: usize) {
-    let boot_info = unsafe { load(multiboot_info_ptr as usize).unwrap() };
-
+pub fn read_multiboot_data<'a>(
+    multiboot_info_ptr: usize,
+    boot_info: &'a BootInformation,
+) -> AreaFrameAllocator<'a, impl Iterator<Item = &'a MemoryArea> + Clone> {
     let memory_map_tag = boot_info.memory_map_tag().expect("Memory map tag required");
 
     let elf_sections_tag = boot_info
@@ -34,8 +37,7 @@ pub fn read_multiboot_data(multiboot_info_ptr: usize) {
     let multiboot_start = multiboot_info_ptr as u64;
     let multiboot_end = multiboot_start + boot_info.total_size() as u64;
 
-    let mut mapper = unsafe { init_tables() };
-    let mut frame_allocator = unsafe {
+    let frame_allocator = unsafe {
         AreaFrameAllocator::init(
             kernel_start,
             kernel_end,
@@ -45,10 +47,14 @@ pub fn read_multiboot_data(multiboot_info_ptr: usize) {
         )
     };
 
+    frame_allocator
+}
+
+pub fn test_address_translation(mapper: &RecursivePageTable) {
     let addresses = [
-        0xb8000,  // the identity-mapped vga buffer page
-        0x201008, // some code page
-        P4,       // P4 Table address
+        0x201008,      // some code page
+        P4,            // P4 Table address
+        0xdeadbeaf000, // newly mapped VGA buffer
     ];
 
     for &address in &addresses {
@@ -56,14 +62,37 @@ pub fn read_multiboot_data(multiboot_info_ptr: usize) {
         let phys = mapper.translate_addr(virt);
         println!("{:?} -> {:?}", virt, phys);
     }
+}
 
-    // map an unused page
+pub fn test_frame_allocation<'a, T>(
+    mapper: &mut RecursivePageTable,
+    frame_allocator: &mut AreaFrameAllocator<'a, T>,
+) where
+    T: Iterator<Item = &'a MemoryArea> + Clone,
+{
     let page = Page::containing_address(VirtAddr::new(0xdeadbeaf000));
-    frame_allocator::create_example_mapping(page, &mut mapper, &mut frame_allocator);
+    create_example_mapping(page, mapper, frame_allocator);
 
     // write the string `New!` to the screen through the new mapping
     let page_ptr: *mut u64 = page.start_address().as_mut_ptr();
-    unsafe { page_ptr.offset(400).write_volatile(0x_f021_f077_f065_f04e) };
+    unsafe { page_ptr.offset(100).write_volatile(0x_f021_f077_f065_f04e) };
+}
+
+pub fn create_example_mapping(
+    page: Page,
+    mapper: &mut RecursivePageTable,
+    frame_allocator: &mut impl FrameAllocator<Size4KiB>,
+) {
+    use x86_64::structures::paging::PageTableFlags as Flags;
+
+    let frame = PhysFrame::containing_address(PhysAddr::new(0xb8000));
+    let flags = Flags::PRESENT | Flags::WRITABLE;
+
+    let map_to_result = unsafe {
+        // FIXME: this is not safe, we do it only for testing
+        mapper.map_to(page, frame, flags, frame_allocator)
+    };
+    map_to_result.expect("map_to failed").flush();
 }
 
 /// Returns a mutable reference to the active level 4 table.
