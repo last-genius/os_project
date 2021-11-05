@@ -1,32 +1,60 @@
+%macro PUSHALL 0
+    push rax
+    push rbx
+    push rcx
+    push rdx
+    push rsp
+    push rbp
+    push rsi
+    push rdi
+%endmacro
+
+%macro POPALL 0
+    pop rdi
+    pop rsi
+    pop rbp
+    pop rsp
+    pop rdx
+    pop rcx
+    pop rbx
+    pop rax
+%endmacro
+
+
+; Load the interrupt handler
 ; Defined in isr.c
 [extern isr_handler]
 
-; Common ISR code
+
+; ISR common stub which all routines jump back to
 isr_common_stub:
-    ; 1. Save CPU state
-	;pushad ; Pushes edi,esi,ebp,esp,ebx,edx,ecx,eax
-	mov ax, ds ; Lower 16-bits of eax = ds.
-	push rax ; save the data segment descriptor
-	mov ax, 0x10  ; kernel data segment descriptor
-	mov ds, ax
-	mov es, ax
-	mov fs, ax
-	mov gs, ax
-	
-    ; 2. Call C handler
-	call isr_handler
-	
-    ; 3. Restore state
-	pop rax 
-	mov ds, ax
-	mov es, ax
-	mov fs, ax
-	mov gs, ax
-	;popad
-	add rsp, 8 ; Cleans up the pushed error code and pushed ISR number
-	sti
-	iretq ; pops 5 things at once: CS, EIP, EFLAGS, SS, and ESP
-	
+    PUSHALL
+
+    ; Save CPU State
+    mov ax, ds
+    push rax
+
+    ; Set the segdefs to kernel segment descriptor
+    mov ax, 0x10
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+
+    ; Call the isr handler
+    call isr_handler
+
+    pop rax
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+    POPALL
+
+    add rsp, 8          ; Removes the pushed error code and ISR number
+    sti
+    iretq
+    	
 ; We don't get information about which interrupt was caller
 ; when the handler is run, so we will need to have a different handler
 ; for every interrupt.
