@@ -36,17 +36,38 @@ extern void isr28();
 extern void isr29();
 extern void isr30();
 extern void isr31();
+/* IRQ definitions */
+extern void irq0();
+extern void irq1();
+extern void irq2();
+extern void irq3();
+extern void irq4();
+extern void irq5();
+extern void irq6();
+extern void irq7();
+extern void irq8();
+extern void irq9();
+extern void irq10();
+extern void irq11();
+extern void irq12();
+extern void irq13();
+extern void irq14();
+extern void irq15();
+
 
 /* Struct which aggregates many registers */
-
 typedef struct {
-    u64_t ds; /* Data segment selector */
-    u64_t rdi, rsi, rbp, rsp, rdx, rcx, rbx, rax;
-    u64_t int_no, err_code; /* Interrupt number and error code (if applicable) */
-    u64_t rip, cs, eflags, useresp, ss; /* Pushed by the processor automatically */
+   u64 ds; /* Data segment selector */
+   u64 rdi, rsi, ebp, rsp, rbx, rdx, rcx, rax; /* Pushed by PUSHALL. */
+   u64 int_no, err_code; /* Interrupt number and error code (if applicable) */
+   u64 rip, cs, rflags, useresp, ss; /* Pushed by the processor automatically */
 } registers_t;
 
 void isr_install();
 void isr_handler(registers_t r);
+void irq_handler(registers_t r);
+
+typedef void (*isr_t)(registers_t);
+void register_interrupt_handler(u8 n, isr_t handler);
 
 #endif

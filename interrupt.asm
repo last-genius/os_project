@@ -24,6 +24,7 @@
 ; Load the interrupt handler
 ; Defined in isr.c
 [extern isr_handler]
+[extern irq_handler]
 
 
 ; ISR common stub which all routines jump back to
@@ -54,7 +55,37 @@ isr_common_stub:
     add rsp, 8          ; Removes the pushed error code and ISR number
     sti
     iretq
-    	
+        
+; Common IRQ code. Identical to ISR code except for the 'call' 
+; and the 'pop ebx'
+irq_common_stub:
+    PUSHALL
+
+    ; Save CPU State
+    mov ax, ds
+    push rax
+
+    ; Set the segdefs to kernel segment descriptor
+    mov ax, 0x10
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+
+    ; Call the irq handler
+    call irq_handler
+
+    pop rbx
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+    POPALL
+
+    add rsp, 8
+    sti
+    iretq
+
 ; We don't get information about which interrupt was caller
 ; when the handler is run, so we will need to have a different handler
 ; for every interrupt.
@@ -95,6 +126,23 @@ global isr28
 global isr29
 global isr30
 global isr31
+; IRQs
+global irq0
+global irq1
+global irq2
+global irq3
+global irq4
+global irq5
+global irq6
+global irq7
+global irq8
+global irq9
+global irq10
+global irq11
+global irq12
+global irq13
+global irq14
+global irq15
 
 ; 0: Divide By Zero Exception
 isr0:
@@ -315,3 +363,115 @@ isr31:
     jmp isr_common_stub
 
 
+; IRQ handlers
+; 0: Programmable Interrupt Timer Interrupt
+irq0:
+    cli
+    push byte 0
+    push byte 32
+    jmp irq_common_stub
+
+; 1: Keyboard Interrupt
+irq1:
+    cli
+    push byte 1
+    push byte 33
+    jmp irq_common_stub
+
+; 2: Cascade (used internally by the two PICs. never raised)
+irq2:
+    cli
+    push byte 2
+    push byte 34
+    jmp irq_common_stub
+
+; 3: COM2 (if enabled)
+irq3:
+    cli
+    push byte 3
+    push byte 35
+    jmp irq_common_stub
+
+; 4: COM1 (if enabled)
+irq4:
+    cli
+    push byte 4
+    push byte 36
+    jmp irq_common_stub
+
+; 5: LPT2 (if enabled)
+irq5:
+    cli
+    push byte 5
+    push byte 37
+    jmp irq_common_stub
+
+; 6: Floppy Disk
+irq6:
+    cli
+    push byte 6
+    push byte 38
+    jmp irq_common_stub
+
+; 7: LPT1 / Unreliable "spurious" interrupt (usually)
+irq7:
+    cli
+    push byte 7
+    push byte 39
+    jmp irq_common_stub
+
+; 8: CMOS real-time clock (if enabled)
+irq8:
+    cli
+    push byte 8
+    push byte 40
+    jmp irq_common_stub
+
+; 9: Free for peripherals / legacy SCSI / NIC
+irq9:
+    cli
+    push byte 9
+    push byte 41
+    jmp irq_common_stub
+
+; 10: Free for peripherals / SCSI / NIC
+irq10:
+    cli
+    push byte 10
+    push byte 42
+    jmp irq_common_stub
+
+; 11: Free for peripherals / SCSI / NIC
+irq11:
+    cli
+    push byte 11
+    push byte 43
+    jmp irq_common_stub
+
+; 12: PS2 Mouse
+irq12:
+    cli
+    push byte 12
+    push byte 44
+    jmp irq_common_stub
+
+; 13: FPU / Coprocessor / Inter-processor
+irq13:
+    cli
+    push byte 13
+    push byte 45
+    jmp irq_common_stub
+
+; 14: Primary ATA Hard Disk
+irq14:
+    cli
+    push byte 14
+    push byte 46
+    jmp irq_common_stub
+
+; 15: Secondary ATA Hard Disk
+irq15:
+    cli
+    push byte 15
+    push byte 47
+    jmp irq_common_stub
