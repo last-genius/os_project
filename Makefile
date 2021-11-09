@@ -10,12 +10,17 @@ assembly_source_files := $(wildcard rust_os/src/*.asm)
 assembly_object_files := $(patsubst rust_os/src/%.asm, \
 	build/%.o, $(assembly_source_files))
 
+C_SOURCES = $(wildcard rust_os/src/kernel/*.c rust_os/src/drivers/*.c rust_os/src/cpu/*.c libc/*.c)
+HEADERS = $(wildcard rust_os/src/kernel/*.h rust_os/src/drivers/*.h rust_os/src/cpu/*.h libc/*.h)
+
+OBJ = $(patsubst %.c,%.o,$(C_SOURCES))
+
 .PHONY: all clean run iso kernel
 
 all: $(kernel)
 
 clean:
-	rm -r build
+	rm -r build target my_build
 
 run: $(iso)
 	qemu-system-x86_64 -cdrom $(iso)
@@ -29,12 +34,21 @@ $(iso): $(kernel) $(grub_cfg)
 	grub-mkrescue -o $(iso) build/isofiles 2> /dev/null
 	rm -r build/isofiles
 
-$(kernel): kernel $(rust_os) $(assembly_object_files) $(linker_script)
+$(kernel): kernel $(assembly_object_files)
 	@ld -n -T $(linker_script) -o $(kernel) \
 		$(assembly_object_files) $(rust_os)
 
-kernel:
-	cargo build
+kernel: $(OBJ) my_build/interrupt.o
+	mkdir -p target/$(target)/debug
+	ar rcs $(rust_os) $^ my_build/interrupt.o 
+	
+my_build/%.o: rust_os/src/*/%.c $(HEADERS)
+	mkdir -p my_build
+	gcc -c -o $@ $<
+	
+my_build/interrupt.o: rust_os/src/cpu/interrupt.asm
+	mkdir -p my_build
+	nasm -felf64 rust_os/src/cpu/interrupt.asm -o $@
 
 # compile assembly files
 build/%.o: rust_os/src/%.asm
