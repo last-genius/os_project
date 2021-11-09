@@ -1,6 +1,8 @@
 #include "isr.h"
 #include "idt.h"
-#include "util.h"
+#include "../drivers/screen.h"
+#include "../kernel/util.h"
+#include "../drivers/ports.h"
 
 isr_t interrupt_handlers[256];
 
@@ -129,8 +131,8 @@ void irq_handler(registers_t r) {
     port_byte_out(0x20, 0x20); /* master */
 
     /* Handle the interrupt in a more modular way?*/
-    // if (interrupt_handlers[r.int_no] != 0) {
-    //     isr_t handler = interrupt_handlers[r.int_no];
-    //     handler(r);
-    // }
+    if (interrupt_handlers[r.int_no] != 0) {
+        isr_t handler = interrupt_handlers[r.int_no];
+        handler(r);
+    }
 }

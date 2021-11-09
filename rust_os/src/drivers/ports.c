@@ -1,4 +1,4 @@
-#include "util.h"
+#include "ports.h"
 
 /**
  * Read a byte from the specified port
@@ -24,4 +24,14 @@ void port_byte_out (u16 port, u8 data) {
      * and none in the 'return' area
      */
     __asm__ __volatile__("out %%al, %%dx" : : "a" (data), "d" (port));
+}
+
+u16 port_word_in (u16 port) {
+    u16 result;
+    __asm__("in %%dx, %%ax" : "=a" (result) : "d" (port));
+    return result;
+}
+
+void port_word_out (u16 port, u16 data) {
+    __asm__ __volatile__("out %%ax, %%dx" : : "a" (data), "d" (port));
 }
