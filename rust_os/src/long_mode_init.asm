@@ -13,7 +13,7 @@ long_mode_start:
     mov gs, ax
 
     ; call the rust main
-    extern main
-    call main
+    extern _start
+    call _start
 
     hlt

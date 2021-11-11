@@ -1,0 +1,22 @@
+[package]
+name = "rust_os"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+volatile = "0.2.6"
+spin = "0.5.2"
+x86_64 = "*"
+multiboot2 = { path = "../multiboot2" }
+bitflags = "1.3"
+pic8259 = "0.10.1"
+pc-keyboard = "0.5.0"
+
+[dependencies.lazy_static]
+version = "1.0"
+features = ["spin_no_std"]
