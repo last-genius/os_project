@@ -4,7 +4,7 @@ use x86_64::{
     PhysAddr,
 };
 
-const PAGE_SIZE: u64 = 4096;
+pub const PAGE_SIZE: u64 = 4096;
 
 pub struct AreaFrameAllocator<'a, T>
 where

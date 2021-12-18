@@ -8,15 +8,19 @@ use x86_64::{
 };
 
 use self::frame_allocator::{AreaFrameAllocator, MemoryArea};
+use self::buddy_allocator::Heap;
 
 mod frame_allocator;
+pub mod buddy_allocator;
+mod linked_list;
 
 pub const P4: u64 = 0xffffffff_fffff000;
+pub const ORD: usize = 16;
 
-pub fn read_multiboot_data<'a>(
+pub fn read_multiboot_data(
     multiboot_info_ptr: usize,
-    boot_info: &'a BootInformation,
-) -> AreaFrameAllocator<'a, impl Iterator<Item = &'a MemoryArea> + Clone> {
+    boot_info: &BootInformation,
+) -> Heap<ORD> {
     let memory_map_tag = boot_info.memory_map_tag().expect("Memory map tag required");
 
     let elf_sections_tag = boot_info
@@ -34,20 +38,26 @@ pub fn read_multiboot_data<'a>(
         .max()
         .unwrap();
 
-    let multiboot_start = multiboot_info_ptr as u64;
-    let multiboot_end = multiboot_start + boot_info.total_size() as u64;
+    let multiboot_start = multiboot_info_ptr as usize; /// CHANGE TO u64 FOR FRAME_ALLOCATOR!!!!!!
+    let multiboot_end = multiboot_start + boot_info.total_size() as usize;
 
-    let frame_allocator = unsafe {
-        AreaFrameAllocator::init(
-            kernel_start,
-            kernel_end,
-            multiboot_start,
-            multiboot_end,
-            memory_map_tag.memory_areas(),
-        )
+    // let frame_allocator = unsafe { /// Original, working but plain version
+    //     AreaFrameAllocator::init(
+    //         kernel_start,
+    //         kernel_end,
+    //         multiboot_start,
+    //         multiboot_end,
+    //         memory_map_tag.memory_areas(),
+    //     )
+    // };
+
+    let mut buddy_allocator = unsafe { /// TODO: This is a placeholder for now!!!!!!!
+        Heap::empty()
     };
-
-    frame_allocator
+    unsafe {
+        buddy_allocator.init(multiboot_end, 65536);
+    }
+    buddy_allocator
 }
 
 pub fn test_address_translation(mapper: &RecursivePageTable) {
@@ -64,11 +74,10 @@ pub fn test_address_translation(mapper: &RecursivePageTable) {
     }
 }
 
-pub fn test_frame_allocation<'a, T>(
+pub fn test_frame_allocation(
     mapper: &mut RecursivePageTable,
-    frame_allocator: &mut AreaFrameAllocator<'a, T>,
-) where
-    T: Iterator<Item = &'a MemoryArea> + Clone,
+    frame_allocator: &mut Heap<ORD>,
+)
 {
     let page = Page::containing_address(VirtAddr::new(0xdeadbeaf000));
     create_example_mapping(page, mapper, frame_allocator);
