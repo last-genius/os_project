@@ -2,7 +2,9 @@ use core::alloc::{GlobalAlloc, Layout};
 use core::cmp::{max, min};
 use core::fmt;
 use core::mem::size_of;
-use core::ptr::{NonNull, read};
+use core::ops::Deref;
+use core::ptr::NonNull;
+use spin::Mutex;
 
 
 pub use multiboot2::MemoryArea;
@@ -196,22 +198,66 @@ impl<const ORDER: usize> fmt::Debug for Heap<ORDER> {
     }
 }
 
+/// A locked version of `Heap`
+///
+/// # Usage
+///
+/// Create a locked heap and add a memory region to it:
+/// ```
+/// use buddy_system_allocator::*;
+/// # use core::mem::size_of;
+/// let mut heap = LockedHeap::<32>::new();
+/// # let space: [usize; 100] = [0; 100];
+/// # let begin: usize = space.as_ptr() as usize;
+/// # let end: usize = begin + 100 * size_of::<usize>();
+/// # let size: usize = 100 * size_of::<usize>();
+/// unsafe {
+///     heap.lock().init(begin, size);
+///     // or
+///     heap.lock().add_to_heap(begin, end);
+/// }
+/// ```
+pub struct LockedHeap<const ORDER: usize>(Mutex<Heap<ORDER>>);
+
+impl<const ORDER: usize> LockedHeap<ORDER> {
+    /// Creates an empty heap
+    pub const fn new() -> Self {
+        LockedHeap(Mutex::new(Heap::<ORDER>::new()))
+    }
+
+    /// Creates an empty heap
+    pub const fn empty() -> Self {
+        LockedHeap(Mutex::new(Heap::<ORDER>::new()))
+    }
+}
+
+impl<const ORDER: usize> Deref for LockedHeap<ORDER> {
+    type Target = Mutex<Heap<ORDER>>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+unsafe impl<const ORDER: usize> GlobalAlloc for LockedHeap<ORDER> {
+    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+        self.0
+            .lock()
+            .alloc(layout)
+            .ok()
+            .map_or(0 as *mut u8, |allocation| allocation.as_ptr())
+    }
+
+    unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+        self.0.lock().dealloc(NonNull::new_unchecked(ptr), layout)
+    }
+}
+
 pub(crate) fn prev_power_of_two(num: usize) -> usize {
     1 << (8 * (size_of::<usize>()) - num.leading_zeros() as usize - 1)
 }
 
-unsafe impl<const ORDER: usize> FrameAllocator<Size4KiB> for Heap<ORDER> {
-    fn allocate_frame(&mut self) -> Option<PhysFrame> {
-        let addr;
-        unsafe {
-            addr = read(self.alloc(Layout::new::<usize>()).unwrap().as_mut()) as u64;
-        }
-        Some(PhysFrame::containing_address(PhysAddr::new(addr)))
-    }
-}
-
-impl<'a, const ORDER: usize> FrameDeallocator<Size4KiB> for Heap<ORDER> {
-    unsafe fn deallocate_frame(&mut self, frame: PhysFrame)  {
-        todo!()
-    }
+#[alloc_error_handler]
+fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
+    panic!("allocation error: {:?}", layout)
 }

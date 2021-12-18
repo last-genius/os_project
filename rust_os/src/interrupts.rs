@@ -62,8 +62,8 @@ extern "x86-interrupt" fn page_fault_handler(
     stack_frame: InterruptStackFrame,
     error_code: PageFaultErrorCode, // Specific Type that describes error code, this is needed by the compiler!
 ){
-    // print!("EXCEPTION: PAGE FAULT:\n{:#?}", stack_frame);
-    // print!("ERROR CODE:\n{:#?}", error_code);
+    println!("EXCEPTION: PAGE FAULT:{:#?}", stack_frame);
+    println!("ERROR CODE:{:#?}", error_code);
     // print!("!");
 }
 
