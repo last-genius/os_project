@@ -40,7 +40,7 @@ pub extern "C" fn _start(multiboot_info_ptr: usize) -> ! {
     let multiboot_start = multiboot_info_ptr as usize;
     let multiboot_end = multiboot_start + boot_info.total_size() as usize;
     unsafe {
-        HEAP_ALLOCATOR.lock().init(multiboot_end, 268_435_456);
+        HEAP_ALLOCATOR.lock().init(multiboot_end, 131_072);
     }
     println!("Allocator set!");
 
