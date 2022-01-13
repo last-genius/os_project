@@ -18,5 +18,5 @@ pic8259 = "0.10.1"
 pc-keyboard = "0.5.0"
 
 [dependencies.lazy_static]
-version = "1.0"
+# version = "1.0"
 features = ["spin_no_std"]

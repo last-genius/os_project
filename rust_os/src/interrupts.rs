@@ -7,6 +7,15 @@ use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame, Pag
 pub const PIC_1_OFFSET: u8 = 32;
 pub const PIC_2_OFFSET: u8 = PIC_1_OFFSET + 8;
 
+extern crate alloc;
+use alloc::vec;
+
+
+// global variables for getting the command name and command length:
+static mut COMMAND_LENGTH: i32 = 0;
+// static mut NUMBERS: &'static [i32] = &[1, 2, 3, 4, 5];
+
+
 #[derive(Debug, Clone, Copy)]
 #[repr(u8)]
 pub enum InterruptIndex {
@@ -64,7 +73,6 @@ extern "x86-interrupt" fn page_fault_handler(
 ){
     println!("EXCEPTION: PAGE FAULT:{:#?}", stack_frame);
     println!("ERROR CODE:{:#?}", error_code);
-    // print!("!");
 }
 
 extern "x86-interrupt" fn timer_interrupt_handler(_stack_frame: InterruptStackFrame) {
@@ -74,6 +82,7 @@ extern "x86-interrupt" fn timer_interrupt_handler(_stack_frame: InterruptStackFr
             .notify_end_of_interrupt(InterruptIndex::Timer.as_u8());
     }
 }
+
 
 extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: InterruptStackFrame) {
     use pc_keyboard::{layouts, DecodedKey, HandleControl, Keyboard, ScancodeSet1};
@@ -89,15 +98,26 @@ extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: InterruptStac
     let mut keyboard = KEYBOARD.lock();
     let mut port = Port::new(0x60);
 
+
     let scancode: u8 = unsafe { port.read() };
     if let Ok(Some(key_event)) = keyboard.add_byte(scancode) {
         if let Some(key) = keyboard.process_keyevent(key_event) {
             match key {
-                DecodedKey::Unicode(character) => print!("{}", character),
-                DecodedKey::RawKey(key) => print!("{:?}", key),
+                DecodedKey::Unicode(character) => unsafe {
+                    if character == '\n' {
+                        println!("\nThe length of the message was: {}", COMMAND_LENGTH);
+                        COMMAND_LENGTH = 0
+                    } else {
+                        print!("{}", character);
+                        COMMAND_LENGTH += 1;
+                    }
+                },
+                DecodedKey::RawKey(key) => print!("HZ: {:?}", key),
             }
         }
     }
+
+    // println!("\nThe scancode for the symbol is: {}", scancode);
 
     unsafe {
         PICS.lock()
