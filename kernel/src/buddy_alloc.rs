@@ -3,7 +3,6 @@ use crate::mem::PhysAddr;
 use crate::mem::VirtAddr;
 use crate::mem::FRAME_SIZE;
 // use crate::serial_println;
-use crate::println;
 use alloc::alloc::{GlobalAlloc, Layout};
 use alloc::vec::Vec;
 use core::cmp;

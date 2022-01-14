@@ -14,24 +14,22 @@ pub mod buddy_alloc;
 pub mod frame_alloc;
 mod gdt;
 pub mod global_alloc;
-pub mod interrupts; // todo add these:
+pub mod interrupts;
 pub mod mem;
-pub mod port;
-pub mod scheduler;
-// pub mod serial_port;
-// use crate::println;
+# pub mod port;
+# pub mod scheduler;
+# pub mod serial_port;
+# pub mod syscalls;
+# mod userspace;
+# pub mod vga_buffer;
 
-pub mod syscalls;
-mod userspace;
-pub mod vga_buffer;
+# use gdt::init_gdt;
+# use interrupts::setup_idt;
+# use vga_buffer::cls;
 
-use gdt::init_gdt;
-use interrupts::setup_idt;
-use vga_buffer::cls;
-
-use crate::port::init_pics;
-use crate::vga_buffer::set_color;
-use crate::vga_buffer::Color;
+# use crate::port::init_pics;
+# use crate::vga_buffer::set_color;
+# use crate::vga_buffer::Color;
 
 #[cfg(not(feature = "no-panic-handler"))]
 use core::panic::PanicInfo;

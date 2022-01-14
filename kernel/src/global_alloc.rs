@@ -1,8 +1,7 @@
 use crate::buddy_alloc::BuddyAllocatorManager;
 use crate::frame_alloc::FrameSingleAllocator;
 use crate::mem::{PhysAddr, VirtAddr, FRAME_SIZE};
-// use crate::serial_println;
-use crate::println;
+use crate::serial_println;
 use alloc::alloc::{GlobalAlloc, Layout};
 use alloc::vec::Vec;
 use core::ptr::null_mut;
@@ -46,7 +45,7 @@ unsafe impl GlobalAlloc for Allocator {
             if let Some(virt) = page.to_virt();
             // return the page
             then {
-                println!(" - GlobalAlloc: Reusing {:x}", virt.addr());
+                serial_println!(" - GlobalAlloc: Reusing {:x}", virt.addr());
                 return virt.to_ref();
             }
         }
@@ -59,9 +58,7 @@ unsafe impl GlobalAlloc for Allocator {
             if let Some(virt) = page.to_virt();
             // return the page
             then {
-                println!(" - GlobalAlloc: Allocated {:x} {}", virt.addr(), layout.size());
-                println!(" - GlobalAlloc: Allocated adfdasfddffd");
-
+                serial_println!(" - GlobalAlloc: Allocated {:x} {}", virt.addr(), layout.size());
                 return virt.to_ref();
             }
         }
@@ -88,7 +85,7 @@ unsafe impl GlobalAlloc for Allocator {
                 free.push(phys_addr);
             }
         }
-        println!(" - GlobalAlloc: Deallocated {:x}", ptr as u64);
+        serial_println!(" - GlobalAlloc: Deallocated {:x}", ptr as u64);
     }
 }
 

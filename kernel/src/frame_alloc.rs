@@ -1,7 +1,5 @@
 use crate::mem::{PhysAddr, VirtAddr, FRAME_SIZE};
-// use crate::serial_println;
-use crate::println;
-
+use crate::serial_println;
 use core::cmp::max;
 use multiboot2::BootInformation;
 use multiboot2::MemoryAreaIter;
@@ -53,7 +51,7 @@ impl SimpleAllocator {
             let start_addr = ((mem_start + FRAME_SIZE - 1) / FRAME_SIZE) * FRAME_SIZE;
             // memory end addr aligned with page size
             let end_addr = (mem_end / FRAME_SIZE) * FRAME_SIZE;
-            println!(
+            serial_println!(
                 "- FrameAlloc: New area: {:x} to {:x} ({})",
                 start_addr,
                 end_addr,

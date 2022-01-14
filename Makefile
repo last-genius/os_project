@@ -1,6 +1,6 @@
 arch ?= x86_64
 kernel := target/kernel-$(arch).bin
-iso := ./rust_os_iso.iso
+iso := target/diy-os-$(arch).iso
 
 linker_script := boot/$(arch)/linker.ld
 ld_mapfile := target/linker.map
@@ -18,11 +18,11 @@ clean:
 
 test:
 	@sed -Ei 's/^(crate-type = ).*/\1["lib"]/g' kernel/Cargo.toml
+	@#cargo xtest -p diy-os-runner --bin diy-os-runner
 	@sed -Ei 's/^(crate-type = ).*/\1["staticlib"]/g' kernel/Cargo.toml
 
 run: $(iso)
-	@qemu-system-x86_64 -cdrom $(iso)
-# 	@qemu-system-x86_64 -m size=8000 -serial stdio --no-reboot -cdrom $(iso)
+	@qemu-system-x86_64 -m size=8000 -serial stdio --no-reboot -cdrom $(iso)
 
 debug: $(iso)
 	@qemu-system-x86_64 -m size=8000 -monitor stdio -d int --no-reboot -s -S -cdrom $(iso)
@@ -45,7 +45,7 @@ target/arch/$(arch)/%.o: boot/$(arch)/%.asm
 	@mkdir -p $(shell dirname $@)
 	@nasm -felf64 $< -o $@
 
-# compile our diy OS
+# compile rust OS
 $(rust_os): FORCE
 	@cargo build -Z build-std=core,alloc -Z build-std-features=compiler-builtins-mem -p diy-os --release
 
