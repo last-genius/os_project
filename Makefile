@@ -1,42 +1,52 @@
 arch ?= x86_64
-kernel := build/kernel-$(arch).bin
-iso := build/os-$(arch).iso
-target ?= $(arch)-rust_os
-rust_os := target/$(target)/debug/librust_os.a
+kernel := target/kernel-$(arch).bin
+iso := ./rust_os_iso.iso
 
-linker_script := rust_os/src/linker.ld
-grub_cfg := rust_os/src/grub.cfg
-assembly_source_files := $(wildcard rust_os/src/*.asm)
-assembly_object_files := $(patsubst rust_os/src/%.asm, \
-	build/%.o, $(assembly_source_files))
+linker_script := boot/$(arch)/linker.ld
+ld_mapfile := target/linker.map
+grub_cfg := boot/$(arch)/grub.cfg
+assembly_source_files := $(wildcard boot/$(arch)/*.asm)
+assembly_object_files := $(patsubst boot/$(arch)/%.asm, target/arch/$(arch)/%.o, $(assembly_source_files))
+rust_os := target/x86_64-rust_os/release/librust_os.a
 
-.PHONY: all clean run iso kernel
+.PHONY: all clean run debug iso
 
 all: $(kernel)
 
 clean:
-	rm -r build
+	@rm -rf target
+
+test:
+	@sed -Ei 's/^(crate-type = ).*/\1["lib"]/g' kernel/Cargo.toml
+	@sed -Ei 's/^(crate-type = ).*/\1["staticlib"]/g' kernel/Cargo.toml
 
 run: $(iso)
-	qemu-system-x86_64 -cdrom $(iso)
+	@qemu-system-x86_64 -cdrom $(iso)
+# 	@qemu-system-x86_64 -m size=8000 -serial stdio --no-reboot -cdrom $(iso)
+
+debug: $(iso)
+	@qemu-system-x86_64 -m size=8000 -monitor stdio -d int --no-reboot -s -S -cdrom $(iso)
 
 iso: $(iso)
 
 $(iso): $(kernel) $(grub_cfg)
-	mkdir -p build/isofiles/boot/grub
-	cp $(kernel) build/isofiles/boot/kernel.bin
-	cp $(grub_cfg) build/isofiles/boot/grub
-	grub-mkrescue -o $(iso) build/isofiles 2> /dev/null
-	rm -r build/isofiles
+	@mkdir -p target/isofiles/boot/grub
+	@cp $(kernel) target/isofiles/boot/kernel.bin
+	@cp $(grub_cfg) target/isofiles/boot/grub
+	@grub-mkrescue -o $(iso) target/isofiles 2> /dev/null
+	@rm -r target/isofiles
 
-$(kernel): kernel $(rust_os) $(assembly_object_files) $(linker_script)
-	@ld -n -T $(linker_script) -o $(kernel) \
-		$(assembly_object_files) $(rust_os)
-
-kernel:
-	cargo build
+$(kernel): $(rust_os) $(assembly_object_files) $(linker_script)
+	@mkdir -p target
+	@ld -z noreloc-overflow -n -T $(linker_script) -o $(kernel) -Map=$(ld_mapfile) $(assembly_object_files) $(rust_os)
 
 # compile assembly files
-build/%.o: rust_os/src/%.asm
-	mkdir -p $(shell dirname $@)
-	nasm -felf64 $< -o $@
+target/arch/$(arch)/%.o: boot/$(arch)/%.asm
+	@mkdir -p $(shell dirname $@)
+	@nasm -felf64 $< -o $@
+
+# compile our diy OS
+$(rust_os): FORCE
+	@cargo build -Z build-std=core,alloc -Z build-std-features=compiler-builtins-mem -p diy-os --release
+
+FORCE: ;
