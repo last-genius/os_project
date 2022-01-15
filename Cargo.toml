@@ -1,5 +1,10 @@
 [workspace]
 members = [
-    "multiboot2",
-    "rust_os",
+    "kernel",
 ]
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"

@@ -1,2 +1,5 @@
 /target
-/build
+**/*.rs.bk
+.idea
+Cargo.lock
+.gdb_history
